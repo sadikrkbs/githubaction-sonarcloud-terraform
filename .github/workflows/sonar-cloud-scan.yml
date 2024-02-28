@@ -17,5 +17,5 @@ jobs:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-              -Dsonar.organization=e2esolutionarchitect
-              -Dsonar.projectKey=sonarcloud-gitaction-terraform-scan
+              -Dsonar.organization=sadikirkbes
+              -Dsonar.projectKey=githubaction-sonarcloud-terraform
