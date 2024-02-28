@@ -25,4 +25,4 @@ jobs:
         with:
           args: >
             -Dsonar.organization=sadikirkbes
-            -Dsonar.projectKey=githubaction-sonarcloud-terraform
+            -Dsonar.projectKey=sadikirkbes
