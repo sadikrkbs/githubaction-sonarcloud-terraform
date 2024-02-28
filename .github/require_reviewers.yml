@@ -1,0 +1,22 @@
+groups:
+  # # The default reviewers
+  # review-group-all: # This group requires all 4 users to approve a PR.
+  #   members:
+  #     - username1
+  #     - username2
+  #     - username3
+  #     - username4
+  #   required: 4 # the number of members from this group that need to approve a PR.
+
+  # review-group-some: # This group requires any 2 users to approve a PR.
+  #   members:
+  #     - username5
+  #     - username6
+  #     - username7
+  #   required: 2
+
+  review-group-any: #This only requires any one user from this group to approve a PR.
+    members:
+      - thesolutionarchitect
+      - somspace
+    required: 1 # the number of members from this group that need to approve a PR.

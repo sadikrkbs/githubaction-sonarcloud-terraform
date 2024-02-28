@@ -1,0 +1,22 @@
+name: "Manual Approval"
+on:
+  workflow_call:
+        
+jobs:
+  build-plan:
+    name: Approval
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.gh_environment }}
+    # defaults:
+    #   run:
+    #     shell: bash
+    #     working-directory: ${{ inputs.path }}
+        
+    steps:
+      - name: Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: thesolutionarchitect # is a comma-delimited list of all required approvers. An approver can either be a user or an org team.
+          minimum-approvals: 1
+          exclude-workflow-initiator-as-approver: false # in production it should be true

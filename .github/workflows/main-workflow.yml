@@ -1,0 +1,30 @@
+name: "Main Workflow"
+on:
+  workflow_dispatch:
+
+jobs:
+  Sonar_Scan:
+    if: github.ref == 'refs/heads/main'
+    uses: e2eSolutionArchitect/sonarcloud-gitaction-terraform-scan/.github/workflows/scan.yml@main
+    secrets:
+      GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    
+  Plan_Dev:
+    needs: Sonar_Scan
+    if: github.ref == 'refs/heads/main'
+    uses: e2eSolutionArchitect/sonarcloud-gitaction-terraform-scan/.github/workflows/aws_tf_plan.yml@main
+    with:
+      #path: project/project1
+      tf_version: 1.7.1
+      tf_vars_file: env/dev.tfvars
+      gh_environment: dev
+
+  Deploy_Dev:
+    needs: Plan_Dev
+    uses: e2eSolutionArchitect/sonarcloud-gitaction-terraform-scan/.github/workflows/aws_tf_apply.yml@main
+    with:
+      #path: project/project2
+      tf_version: 1.7.1
+      tf_vars_file: env/dev.tfvars
+      gh_environment: dev

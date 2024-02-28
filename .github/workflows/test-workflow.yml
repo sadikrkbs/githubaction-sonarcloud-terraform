@@ -1,0 +1,38 @@
+name: Test Workflow
+
+on:
+  # push:
+  #   branches:
+  #     - dev
+  #   paths:
+  #     - templates/small/**
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'The environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - production
+          - qa
+          - dev
+      notify:
+        description: 'Should workflow notify team?'
+        required: true
+        type: boolean
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Deploy
+        run: echo "Deploying to ${{ github.event.inputs.environment }} environment"
+
+      - name: Notify
+        if: ${{ github.event.inputs.notify }}
+        run: echo "Notifying of ${{ github.event.inputs.environment }} deployment"
