@@ -19,6 +19,9 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           role-session-name: samplerolesession
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: Show assumed role
+        run: aws sts get-caller-identity
+      
       - name: checkls
         run: ls -la
 
