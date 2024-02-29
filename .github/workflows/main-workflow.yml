@@ -22,7 +22,7 @@ jobs:
 
   Deploy_Dev:
     needs: Plan_Dev
-    uses: sadikrkbs/githubaction-sonarcloud-terraform/.github/workflows/aws_tf_apply.yml@main
+    uses: e2eSolutionArchitect/githubaction-sonarcloud-terraform/.github/workflows/aws_tf_apply.yml@main
     with:
       #path: project/project2
       tf_version: 1.7.1
