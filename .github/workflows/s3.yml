@@ -12,12 +12,16 @@ jobs:
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v4
+
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE }}
           role-session-name: samplerolesession
           aws-region: ${{ secrets.AWS_REGION }}
+      - name: checkls
+        run: ls -la
+         
       # Upload a file to AWS s3
       - name:  Copy index.html to s3
         run: |
