@@ -1,64 +1,103 @@
-# A great reference from https://github.com/RekhuGopal/PythonHacks/tree/main/GitHub_Action_Reusable_Workflows_with_Multi-Environments_for_AWS_Platform_Management
-name: "Build_TF_Plan"
+name: "Terraform action"
 on:
-  workflow_call:
-    inputs:
-      path:
-        description: 'Specifies the path of the root terraform module.'
-        required: false
-        type: string
-      tf_version:
-        description: 'Specifies version of Terraform to use. e.g: 1.7.1 Default=latest.'
-        required: false
-        type: string
-        default: latest
-      gh_environment:
-        description: 'Specifies the GitHub deployment environment.'
-        required: true
-        type: string
-        default: dev
-      tf_vars_file:
-        description: 'Specifies the Terraform TFVARS file.'
-        required: true
-        type: string
-        
+  push:
+    branches:
+      - main
+  pull_request:
+permissions:
+  id-token: write # This is required for aws oidc connection
+  contents: read # This is required for actions/checkout
+  pull-requests: write # This is required for gh bot to comment PR
+env:
+  TF_LOG: INFO
+  AWS_REGION: ${{ secrets.AWS_REGION }}
 jobs:
-  build-plan:
-    name: Terraform Plan
+  deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.gh_environment }}
-    # defaults:
-    #   run:
-    #     shell: bash
-    #     working-directory: ${{ inputs.path }}
-        
-    steps:          
-      - name: Checkout
-        uses: actions/checkout@v3.1.0
-        
-      - name: Change file name
-        run: | 
-          mv ${{ github.workspace }}/${{ inputs.tf_vars_file }}  ${{ github.workspace }}/${{ inputs.gh_environment }}.auto.tfvars 
-        
-# mv ${{ github.workspace }}/${{ inputs.path }}/${{ inputs.gh_environment }}.tfvars  ${{ github.workspace }}/${{ inputs.path }}/${{ inputs.gh_environment }}.auto.tfvars 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.2
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials from AWS account
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          terraform_version: ${{ inputs.tf_version }}
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: GitHub-OIDC-TERRAFORM
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.2.5
+
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
 
       - name: Terraform Init
         id: init
-        run: terraform init
-      
+        env:
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          AWS_BUCKET_KEY_NAME: ${{ secrets.AWS_BUCKET_KEY_NAME }}
+        run: terraform init -backend-config="bucket=${AWS_BUCKET_NAME}" -backend-config="key=${AWS_BUCKET_KEY_NAME}" -backend-config="region=${AWS_REGION}"
+
       - name: Terraform Validate
         id: validate
-        run: terraform validate
+        run: terraform validate -no-color
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan
+        run: terraform plan -no-color
+        if: github.event_name == 'pull_request'
         continue-on-error: true
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
